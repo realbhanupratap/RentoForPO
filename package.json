@@ -1,0 +1,15 @@
+{
+  "name": "rento-po-backend",
+  "version": "1.0.0",
+  "description": "a backend of Rento app for Property Owners",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Rento",
+    "javascript"
+  ],
+  "author": "Bhanu Pratap",
+  "license": "ISC"
+}
