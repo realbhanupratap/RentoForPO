@@ -10,12 +10,10 @@ import jwt from "jsonwebtoken";
 const registerLandlord = asyncHandler(async (req, res) => {
   const { fullName, email, username, password } = req.body;
 
-  // Validate required fields
   if ([fullName, email, username, password].some(field => !field?.trim())) {
     throw new ApiError("All fields are required", 400);
   }
 
-  // Check if user already exists
   const existedUser = await Landlord.findOne({
     $or: [{ email }, { username }],
   });
@@ -24,7 +22,6 @@ const registerLandlord = asyncHandler(async (req, res) => {
     throw new ApiError("User already exists", 409);
   }
 
-  // Handle avatar and cover image upload (if present)
   const avatarLocalPath = req.files?.avatar?.[0]?.path;
   const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
@@ -41,10 +38,8 @@ const registerLandlord = asyncHandler(async (req, res) => {
     throw new ApiError("Avatar upload failed", 400);
   }
 
-  // Hash password before saving
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Create the landlord in the database
   const createdLandlord = await Landlord.create({
     fullName,
     avatar: avatar.url,
@@ -54,7 +49,6 @@ const registerLandlord = asyncHandler(async (req, res) => {
     username: username.toLowerCase(),
   });
 
-  // Return response with the created user, excluding password and refresh token
   const landlordResponse = await Landlord.findById(createdLandlord._id).select(
     "-password -refreshToken"
   );
@@ -68,35 +62,57 @@ const registerLandlord = asyncHandler(async (req, res) => {
 const loginLandlord = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  // Validate input
   if (!email || !password) {
     throw new ApiError("Email and password are required", 400);
   }
 
-  // Check if the landlord exists
   const landlord = await Landlord.findOne({ email });
   if (!landlord) {
     throw new ApiError("Invalid email or password", 401);
   }
 
-  // Validate password
   const isPasswordCorrect = await landlord.isPasswordCorrect(password);
   if (!isPasswordCorrect) {
     throw new ApiError("Invalid email or password", 401);
   }
 
-  // Generate access and refresh tokens
   const accessToken = landlord.generateAccessToken();
   const refreshToken = landlord.generateRefreshToken();
 
-  // Store the refresh token in the database
   landlord.refreshToken = refreshToken;
   await landlord.save();
 
-  // Return tokens to the client
   return res.status(200).json(
     new ApiResponse(200, { accessToken, refreshToken }, "Login successful")
   );
+});
+
+// Change Password Logic (Correct Placement)
+const changePassword = asyncHandler(async (req, res) => {
+  const landlordId = req.user._id; // Assuming user is authenticated from the auth middleware
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    throw new ApiError('Current password and new password are required', 400);
+  }
+
+  const landlord = await Landlord.findById(landlordId);
+
+  if (!landlord) {
+    throw new ApiError('Landlord not found', 404);
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, landlord.password);
+  if (!isMatch) {
+    throw new ApiError('Current password is incorrect', 400);
+  }
+
+  const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+  landlord.password = hashedNewPassword;
+  await landlord.save();
+
+  return res.status(200).json(new ApiResponse(200, null, 'Password changed successfully'));
 });
 
 // Refresh access token
@@ -115,7 +131,6 @@ const refreshToken = asyncHandler(async (req, res) => {
       throw new ApiError("Invalid refresh token", 403);
     }
 
-    // Generate new access token
     const newAccessToken = landlord.generateAccessToken();
 
     return res.status(200).json(
@@ -134,7 +149,6 @@ const logoutLandlord = asyncHandler(async (req, res) => {
     throw new ApiError("Refresh token is required", 400);
   }
 
-  // Invalidate the refresh token by removing it from the user's data
   const landlord = await Landlord.findOneAndUpdate(
     { refreshToken: token },
     { refreshToken: "" }
@@ -149,4 +163,4 @@ const logoutLandlord = asyncHandler(async (req, res) => {
   );
 });
 
-export { registerLandlord, loginLandlord, refreshToken, logoutLandlord };
+export { registerLandlord, loginLandlord, refreshToken, logoutLandlord, changePassword };

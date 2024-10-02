@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const complaintSchema = new Schema({
@@ -16,6 +16,11 @@ const complaintSchema = new Schema({
     ref: 'Property',
     required: true,
   },
+  landlord: {
+    type: Schema.Types.ObjectId,
+    ref: 'Landlord',
+    required: true,
+  },
   status: {
     type: String,
     enum: ['open', 'in progress', 'closed'],
@@ -23,4 +28,4 @@ const complaintSchema = new Schema({
   },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Complaint', complaintSchema);
+export const Complaint = mongoose.model('Complaint', complaintSchema);

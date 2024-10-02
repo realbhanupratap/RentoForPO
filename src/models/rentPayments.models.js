@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
-const { Schema } = mongoose;
+import mongoose, { Schema } from 'mongoose';
 
 const rentPaymentSchema = new Schema({
   amount: {
     type: Number,
     required: true,
+    min: [0, "Amount cannot be negative"],  // Validating amount
   },
   paymentDate: {
     type: Date,
@@ -19,7 +19,12 @@ const rentPaymentSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Property',
     required: true,
-  }
+  },
+  landlord: {
+    type: Schema.Types.ObjectId,
+    ref: 'Landlord',
+    required: true,
+  },
 }, { timestamps: true });
 
-module.exports = mongoose.model('RentPayment', rentPaymentSchema);
+export const RentPayment = mongoose.model('RentPayment', rentPaymentSchema);
